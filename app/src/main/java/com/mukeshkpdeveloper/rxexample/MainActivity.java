@@ -1,23 +1,28 @@
 package com.mukeshkpdeveloper.rxexample;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.Arrays;
+
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
 import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Observer;
-import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.observers.DisposableObserver;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-    private String greeting = "Hello RX Java";
-    private Observable<String> myObservable;
-    private Observer<String> myObserver;
+    private String[] greeting = {"Hello RX A", "Hello RX B", "Hello RX C"};
+    private Observable<String[]> myObservable;
+    private DisposableObserver<String[]> myObserver;
     private TextView tvGreeting;
-    private Disposable disposable;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,17 +39,21 @@ public class MainActivity extends AppCompatActivity {
 
     private void initRXJava() {
         myObservable = Observable.just(greeting);
-        myObserver = new Observer<String>() {
-            @Override
-            public void onSubscribe(@NonNull Disposable d) {
-                Log.i(TAG, "onSubscribe: invoked");
-                disposable = d;
-            }
 
+        compositeDisposable.add(
+                myObservable.subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(getObserver())
+        );
+
+    }
+
+    private DisposableObserver getObserver() {
+        myObserver = new DisposableObserver<String[]>() {
             @Override
-            public void onNext(@NonNull String s) {
-                Log.i(TAG, "onNext: invoked");
-                tvGreeting.setText(s);
+            public void onNext(@NonNull String[] s) {
+                Log.i(TAG, "onNext: invoked"+ Arrays.toString(s));
+                tvGreeting.setText(Arrays.toString(s));
             }
 
             @Override
@@ -57,12 +66,13 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "onComplete: invoked");
             }
         };
-        myObservable.subscribe(myObserver);
+
+        return myObserver;
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        disposable.dispose();
+        compositeDisposable.clear();
     }
 }
