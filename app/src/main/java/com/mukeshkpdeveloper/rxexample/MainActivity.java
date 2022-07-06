@@ -8,16 +8,15 @@ import android.widget.TextView;
 
 import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.core.Observable;
-import io.reactivex.rxjava3.core.Observer;
-import io.reactivex.rxjava3.disposables.Disposable;
+
+import io.reactivex.rxjava3.observers.DisposableObserver;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private String greeting = "Hello RX Java";
     private Observable<String> myObservable;
-    private Observer<String> myObserver;
+    private DisposableObserver<String> myObserver;
     private TextView tvGreeting;
-    private Disposable disposable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,13 +33,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void initRXJava() {
         myObservable = Observable.just(greeting);
-        myObserver = new Observer<String>() {
-            @Override
-            public void onSubscribe(@NonNull Disposable d) {
-                Log.i(TAG, "onSubscribe: invoked");
-                disposable = d;
-            }
 
+        myObserver = new DisposableObserver<String>() {
             @Override
             public void onNext(@NonNull String s) {
                 Log.i(TAG, "onNext: invoked");
@@ -57,12 +51,13 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "onComplete: invoked");
             }
         };
+
         myObservable.subscribe(myObserver);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        disposable.dispose();
+        myObserver.dispose();
     }
 }
